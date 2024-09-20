@@ -26,9 +26,19 @@
 
 
 
-static void *http_server_run(void);
+static void *http_server_run(void *);
 
 pthread_t t_http_server;
+
+/*
+
+rc/http_server.c: I funktion ”http_server_start”:src/http_server.c:35:55: varning: skickar argument 3 till ”pthread_create” från inkompatibel pekartyp [-Wincompatible-pointer-types]   35 |         int k = pthread_create (&t_http_server, NULL, http_server_run, NULL);      |                                                       ^~~~~~~~~~~~~~~
+      |                                                       |
+      |                                                       void * (*)(void)
+I filen inkluderad ifrån src/http_server.c:24:/usr/include/pthread.h:204:36: anm: ”void * (*)(void *)” förväntades men argumentet har typ ”void * (*)(void)”  204 |                            void *(*__start_routine) (void *),      |                            ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+c
+*/
+
 
 int http_server_start(void) {
 
@@ -60,7 +70,7 @@ const char *NoResource  =  "HTTP/1.1 404 No such resource\r\nAccess-Control-Allo
 const char *WrongMethod =  "HTTP/1.1 405 Method not allowed\r\nAccess-Control-Allow-Origin: *\r\n\r\n";
 
 
-void *http_server_run(void)
+void *http_server_run(void *)
 {
 
   signal(SIGINT, handleSignal);
