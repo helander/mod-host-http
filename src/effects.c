@@ -4593,8 +4593,12 @@ int effects_add(const char *uri, int instance, int activate)
     plugin_uri = NULL;
     lilv_instance = NULL;
 
+    /* Get the plugin */
+    plugin_uri = lilv_new_uri(g_lv2_data, uri);
+    plugin = lilv_plugins_get_by_uri(g_plugins, plugin_uri);
+
     /* Create a client to Jack */
-    snprintf(effect_name, 31, "effect_%i", instance);
+    snprintf(effect_name, 31, "effect_%i_%s", instance, lilv_node_as_string(lilv_plugin_get_name(plugin)));
     jack_client = jack_client_open(effect_name, JackNoStartServer, &jack_status);
 
     if (!jack_client)
@@ -4605,9 +4609,6 @@ int effects_add(const char *uri, int instance, int activate)
     }
     effect->jack_client = jack_client;
 
-    /* Get the plugin */
-    plugin_uri = lilv_new_uri(g_lv2_data, uri);
-    plugin = lilv_plugins_get_by_uri(g_plugins, plugin_uri);
 
     if (!plugin)
     {
