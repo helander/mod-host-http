@@ -338,7 +338,7 @@ typedef struct PORT_T {
     hmi_addressing_t* hmi_addressing;
 #endif
 } port_t;
-
+		
 typedef struct PROPERTY_T {
     LilvNode* uri;
     LilvNode* type;
@@ -8479,4 +8479,184 @@ void effects_idle_external_uis(void)
         }
     }
 #endif
+}
+
+//==========================================================================================================
+
+static char *
+booleanImage(bool b)
+{                                                                                                                                                                                                  
+  if (b) return "true";
+  return "false";                                                                                                                                                                                  
+}                                                                                                                                                                                                  
+
+static char *
+portFlowImage(enum PortFlow e)
+{                                                                                                                                                                                                  
+  switch(e) {
+    case FLOW_UNKNOWN: return "unknown"; 
+    case FLOW_INPUT: return "input"; 
+    case FLOW_OUTPUT: return "output"; 
+  }
+  return "undefined";                                                                                                                                                                                  
+}                                                                                                                                                                                                  
+
+static char *
+portTypeImage(enum PortType e)
+{                                                                                                                                                                                                  
+  switch(e) {
+    case TYPE_UNKNOWN: return "unknown"; 
+    case TYPE_CONTROL: return "control"; 
+    case TYPE_AUDIO: return "audio"; 
+    case TYPE_CV: return "cv"; 
+    case TYPE_EVENT: return "event"; 
+  }
+  return "undefined";                                                                                                                                                                                  
+}                                                                                                                                                                                                  
+
+static char image[20];
+
+static char * 
+typedImage(enum PortHints hints, float fvalue)
+{
+   if (HINT_TOGGLE & hints) {
+      sprintf(image,"%d",(int) rint(fvalue));
+      return image;
+   } else if (HINT_INTEGER & hints) {
+      sprintf(image,"%d",(int) rint(fvalue));
+      return image;
+   } else {
+      sprintf(image,"%f",fvalue);
+      return image;      
+   }
+   return "";
+
+}
+
+//==========================================================================================================
+
+void http_effect_put(int instance, char *entityType, char *entityName, char *entityValue, char *response)
+{
+  printf("\nData to put: {%s/%s/%s}",entityType, entityName, entityValue);fflush(stdout);
+  if (strcmp(entityType,"control") == 0) {
+
+  } else if (strcmp(entityType,"property") == 0) {
+  } else if (strcmp(entityType,"parameter") == 0) {
+  } else {
+    fprintf(stderr,"\nUnknown entity type : %s",entityType);fflush(stderr);
+  }
+
+
+}
+
+void http_effect_get(int instance, char *response)
+{
+     strcpy(response,"{");
+     effect_t effect = g_effects[instance];
+     if (effect.lilv_instance != NULL) {
+       char record[50000];
+       sprintf(record,"\"instance\": %d",effect.instance);strcat(response,record);
+       sprintf(record,",\"activated\": %s",booleanImage(effect.activated));strcat(response,record);
+       sprintf(record,",\"name\": \"%s\"", lilv_node_as_string(lilv_plugin_get_name(effect.lilv_plugin)));strcat(response,record);
+       sprintf(record,",\"uri\": \"%s\"", lilv_instance_get_uri(effect.lilv_instance));strcat(response,record);
+       strcat(response,",\"counts\": {");
+         sprintf(record,"\"ports\": %d,",effect.ports_count);strcat(response,record);
+         sprintf(record,"\"properties\": %d,",effect.properties_count);strcat(response,record);
+         sprintf(record,"\"audio_ports\": %d,",effect.audio_ports_count);strcat(response,record);
+         sprintf(record,"\"input_audio_ports\": %d,",effect.input_audio_ports_count);strcat(response,record);
+         sprintf(record,"\"output_audio_ports\": %d,",effect.output_audio_ports_count);strcat(response,record);
+         sprintf(record,"\"control_ports\": %d,",effect.control_ports_count);strcat(response,record);
+         sprintf(record,"\"input_control_ports\": %d,",effect.input_control_ports_count);strcat(response,record);
+         sprintf(record,"\"output_control_ports\": %d,",effect.output_control_ports_count);strcat(response,record);
+         sprintf(record,"\"cv_ports\": %d,",effect.cv_ports_count);strcat(response,record);
+         sprintf(record,"\"input_cv_ports\": %d,",effect.input_cv_ports_count);strcat(response,record);
+         sprintf(record,"\"output_cv_ports\": %d,",effect.output_cv_ports_count);strcat(response,record);
+         sprintf(record,"\"event_ports\": %d,",effect.event_ports_count);strcat(response,record);
+         sprintf(record,"\"input_event_ports\": %d,",effect.input_event_ports_count);strcat(response,record);
+         sprintf(record,"\"output_event_ports\": %d,",effect.output_event_ports_count);strcat(response,record);
+         sprintf(record,"\"presets\": %d,",effect.presets_count);strcat(response,record);
+         sprintf(record,"\"monitors\": %d",effect.monitors_count);strcat(response,record);
+       strcat(response,"}");
+       strcat(response,",\"properties\": [");
+          for (uint32_t  i=0; i < effect.properties_count; i++) {
+            property_t  *property = effect.properties[i];
+            if (i==0) strcat(response,"{"); else strcat(response,",{");
+            char record[2000];
+            sprintf(record,"\"type\": \"%s\",", lilv_node_as_string(property->type));strcat(response,record);
+            sprintf(record,"\"uri\": \"%s\",", lilv_node_as_string(property->uri));strcat(response,record);
+            sprintf(record,"\"writeable\": \"%s\"", booleanImage(property->monitored));strcat(response,record);
+            strcat(response,"}");
+          }
+       strcat(response,"]");
+       strcat(response,",\"input_control_ports\": [");
+          for (uint32_t  i=0; i < effect.input_control_ports_count; i++) {
+            port_t  *controlPort = effect.input_control_ports[i];
+            if (i==0) strcat(response,"{"); else strcat(response,",{");
+            char record[2000];
+            sprintf(record,"\"index\": %d", controlPort->index);strcat(response,record);
+            sprintf(record,",\"symbol\": \"%s\"", controlPort->symbol);strcat(response,record);
+            sprintf(record,",\"type\": \"%s\"", portTypeImage(controlPort->type));strcat(response,record);
+            sprintf(record,",\"flow\": \"%s\"", portFlowImage(controlPort->flow));strcat(response,record);
+            sprintf(record,",\"hints\": %x", controlPort->hints);strcat(response,record);
+            sprintf(record,",\"enumeration\": %s", booleanImage(HINT_ENUMERATION & controlPort->hints));strcat(response,record);
+            sprintf(record,",\"integer\": %s", booleanImage(HINT_INTEGER & controlPort->hints));strcat(response,record);
+            sprintf(record,",\"toggle\": %s", booleanImage(HINT_TOGGLE & controlPort->hints));strcat(response,record);
+            sprintf(record,",\"trigger\": %s", booleanImage(HINT_TRIGGER & controlPort->hints));strcat(response,record);
+            sprintf(record,",\"logarithmic\": %s", booleanImage(HINT_LOGARITHMIC & controlPort->hints));strcat(response,record);
+            sprintf(record,",\"value\": %s", typedImage(controlPort->hints,(float) *controlPort->buffer));strcat(response,record);
+            sprintf(record,",\"min_value\": %s", typedImage(controlPort->hints,controlPort->min_value));strcat(response,record);
+            sprintf(record,",\"max_value\": %s", typedImage(controlPort->hints,controlPort->max_value));strcat(response,record);
+            sprintf(record,",\"def_value\": %s", typedImage(controlPort->hints,controlPort->def_value));strcat(response,record);
+
+            LilvScalePoints *points = controlPort->scale_points;
+            strcat(response,",\"scale_points\": [");
+            if (points != NULL)
+            {
+                uint32_t j = 0;
+                LilvIter *iter;
+                for (iter = lilv_scale_points_begin(points);
+                    !lilv_scale_points_is_end(points, iter);
+                    iter = lilv_scale_points_next(points, iter))
+                {
+                    if (j==0) strcat(response,"{"); else strcat(response,",{");
+                    const LilvScalePoint *point = lilv_scale_points_get(points, iter);
+                    sprintf(record,"\"value\": \"%s\"", lilv_node_as_string(lilv_scale_point_get_value(point)));strcat(response,record);
+                    sprintf(record,",\"label\": \"%s\"", lilv_node_as_string(lilv_scale_point_get_label(point)));strcat(response,record);
+                    strcat(response,"}");
+                    j++;
+                }
+            }
+            strcat(response,"]");
+            strcat(response,"}");
+
+          }
+       strcat(response,"]");
+     }
+     strcat(response,"}");
+}
+
+void http_effect_instances(char *response)
+{
+   strcpy(response,"[");
+   bool first = true;
+   for (int i=0; i < MAX_INSTANCES; i++) {
+     effect_t effect = g_effects[i];
+     if (effect.lilv_instance != NULL) {
+       if (first) {
+         strcat(response,"{");
+         first = false;
+       } else {
+         strcat(response,",{");
+       }
+       char record[100];
+       sprintf(record,"\"instance\": %d,",effect.instance);strcat(response,record);
+       sprintf(record,"\"activated\": %s,",booleanImage(effect.activated));strcat(response,record);
+       sprintf(record,"\"name\": \"%s\",", lilv_node_as_string(lilv_plugin_get_name(effect.lilv_plugin)));strcat(response,record);
+       sprintf(record,"\"uri\": \"%s\"", lilv_instance_get_uri(effect.lilv_instance));strcat(response,record);
+       strcat(response,"}");
+     }
+
+   }
+   strcat(response,"]");
+
 }

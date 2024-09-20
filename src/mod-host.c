@@ -65,6 +65,7 @@
 #include "completer.h"
 #include "monitor.h"
 #include "info.h"
+#include "http_server.h"
 
 
 /*
@@ -587,6 +588,7 @@ static void output_data_ready(proto_t *proto)
     protocol_response("resp 0", proto);
 }
 
+
 static void help_cb(proto_t *proto)
 {
     proto->response = 0;
@@ -905,8 +907,16 @@ int main(int argc, char **argv)
     /* Interactive mode */
     if (interactive)
     {
+        http_server_start();
+        
+effects_add("http://gareus.org/oss/lv2/b_synth",1,1);
+effects_add("http://gareus.org/oss/lv2/b_whirl#extended",2,1);
+effects_add("http://gareus.org/oss/lv2/b_whirl#simple",3,1);
+effects_add("http://helander.network/plugins/lv2/newplugin",4,1);
+
         interactive_mode();
         effects_finish(1);
+        http_server_stop();
         return 0;
     }
     else
@@ -932,8 +942,12 @@ int main(int argc, char **argv)
     printf("mod-host ready!\n");
     fflush(stdout);
 
+    http_server_start();
+
     running = 1;
     while (running) socket_run(interactive);
+
+    http_server_stop();
 
     socket_finish();
     effects_finish(1);

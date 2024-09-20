@@ -189,6 +189,10 @@ void effects_output_data_ready(void);
 int effects_show_external_ui(int effect_id);
 void effects_idle_external_uis(void);
 
+void http_effect_instances(char *response);
+void http_effect_get(int instance, char *response);
+void http_effect_put(int instance, char *entityType, char *entityName, char *entityValue, char *response);
+
 /*
 ************************************************************************************************************************
 *           CONFIGURATION ERRORS
